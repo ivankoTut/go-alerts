@@ -9,4 +9,4 @@ alerts.Error("Test message")
 alerts.Note("Test message")
 ```
 
-![alt text](https://github.com/ivankoTut/go-alerts/blob/master/1651582978036.jpg?raw=false)
+![alt text](https://github.com/ivankoTut/go-alerts/blob/main/1651582978036.jpg?raw=true)
