@@ -4,6 +4,12 @@ import (
 	"fmt"
 	"golang.org/x/crypto/ssh/terminal"
 	"strings"
+	"unicode/utf8"
+)
+
+const (
+	paddingTop    = "padding-top"
+	paddingBottom = "padding-bottom"
 )
 
 const DefaultPrefix = "  "
@@ -18,73 +24,91 @@ func init() {
 	}
 }
 
-func Success(message string) error {
-	color, err := CreateColor("white", "green", []string{"bold"})
+func Success(message string) {
+	color, _ := CreateColor("white", "green", []string{"bold"})
 
-	if err != nil {
-		return err
-	}
-
-	createBlock(message, "OK", color)
-
-	return nil
+	CreateBlock(message, "OK", color)
 }
 
-func Warning(message string) error {
-	color, err := CreateColor("black", "yellow", []string{"bold"})
+func Warning(message string) {
+	color, _ := CreateColor("black", "yellow", []string{"bold"})
 
-	if err != nil {
-		return err
-	}
-
-	createBlock(message, "WARNING", color)
-
-	return nil
+	CreateBlock(message, "WARNING", color)
 }
 
-func Error(message string) error {
-	color, err := CreateColor("white", "red", []string{"bold"})
+func Error(message string) {
+	color, _ := CreateColor("white", "red", []string{"bold"})
 
-	if err != nil {
-		return err
-	}
-
-	createBlock(message, "ERROR", color)
-
-	return nil
+	CreateBlock(message, "ERROR", color)
 }
 
-func Note(message string) error {
-	color, err := CreateColor("yellow", "default", []string{"bold"})
+func Note(message string) {
+	color, _ := CreateColor("yellow", "default", []string{"bold"})
 
-	if err != nil {
-		return err
-	}
-
-	createBlock(message, "NOTE", color)
-
-	return nil
+	CreateBlock(message, "NOTE", color)
 }
 
-func createBlock(message string, name string, color *Color) {
-	name = fmt.Sprintf(DefaultPrefix+"[%s]"+DefaultPrefix, name)
-	indentLength := len(name)
+func CreateBlock(message string, name string, color *Color) {
+	if name != "" {
+		name = fmt.Sprintf(DefaultPrefix+"[%s]"+DefaultPrefix, name)
+	} else {
+		name = DefaultPrefix + name
+	}
+
+	indentLength := utf8.RuneCountInString(name)
 	lineIndentation := strings.Repeat(" ", indentLength)
 
-	fmt.Println("")
-	fmt.Println(color.Apply(strings.Repeat(" ", maxLineLength)))
+	if color.newLine {
+		fmt.Println("")
+	}
+
+	createPaddingBlock(color, paddingTop)
+
 	lines := strings.Split(WrapString(message, maxLineLength-indentLength), "\n")
 
 	for i, value := range lines {
 		if i == 0 {
-			message = name + value + strings.Repeat(" ", maxLineLength-len(value+name))
+			message = name + value + strings.Repeat(" ", maxLineLength-utf8.RuneCountInString(value+name))
 			fmt.Println(color.Apply(message))
 			continue
 		}
 
-		message = lineIndentation + value + strings.Repeat(" ", maxLineLength-len(value+lineIndentation))
+		message = lineIndentation + value + strings.Repeat(" ", maxLineLength-utf8.RuneCountInString(value+lineIndentation))
 		fmt.Println(color.Apply(message))
 	}
 
-	fmt.Println(color.Apply(strings.Repeat(" ", maxLineLength)))
+	createPaddingBlock(color, paddingBottom)
+}
+
+func createPaddingBlock(color *Color, paddingMode string) {
+	str := ""
+	if paddingMode == paddingTop {
+		if color.paddingTop == false {
+			return
+		}
+
+		if color.paddingTopColor != "" {
+			color.createColorMode = fillColorPaddingTop
+			str = color.Apply(strings.Repeat(" ", maxLineLength))
+			color.createColorMode = fillColorBody
+		} else {
+			str = color.Apply(strings.Repeat(" ", maxLineLength))
+		}
+	}
+
+	if paddingMode == paddingBottom {
+		if color.paddingBottom == false {
+			return
+		}
+
+		if color.paddingBottomColor != "" {
+			color.createColorMode = fillColorPaddingBottom
+			str = color.Apply(strings.Repeat(" ", maxLineLength))
+			color.createColorMode = fillColorBody
+		} else {
+			str = color.Apply(strings.Repeat(" ", maxLineLength))
+		}
+	}
+
+	fmt.Println(str)
 }

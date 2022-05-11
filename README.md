@@ -9,4 +9,24 @@ alerts.Error("Test message")
 alerts.Note("Test message")
 ```
 
-![alt text](https://github.com/ivankoTut/go-alerts/blob/master/1651582978036.jpg?raw=true)
+### Customize
+```go
+color, err := alerts.CreateColor("default", "default", []string{"bold"})
+
+if err != nil {
+    panic(err)
+}
+
+color.
+    PrintPaddingBottom(true).
+    PrintPaddingTop(true).
+    PrintNewLine(true).
+    SetPaddingTopColor("black").
+    SetPaddingBottomColor("black")
+
+alerts.CreateBlock("", "", color) // without title and text
+
+alerts.CreateBlock("Text", "TITLE", color) // with title
+```
+
+![alt text](https://github.com/ivankoTut/go-alerts/blob/master/example/1651582978036.jpg?raw=true)

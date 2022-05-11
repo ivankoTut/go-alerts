@@ -5,6 +5,12 @@ import (
 	"strings"
 )
 
+const (
+	fillColorBody = iota
+	fillColorPaddingTop
+	fillColorPaddingBottom
+)
+
 var colors = map[string]int{
 	"black":   0,
 	"red":     1,
@@ -37,9 +43,45 @@ var availableOptions = map[string]map[string]int{
 }
 
 type Color struct {
-	foreground string
-	background string
-	options    map[string]map[string]int
+	foreground         string
+	background         string
+	options            map[string]map[string]int
+	paddingTop         bool
+	paddingBottom      bool
+	newLine            bool
+	paddingTopColor    string
+	paddingBottomColor string
+	createColorMode    int // 0 - body, 1 - top padding, 2 bottom padding
+}
+
+func (c *Color) SetPaddingTopColor(color string) *Color {
+	c.paddingTopColor = parseColor(color, true)
+
+	return c
+}
+
+func (c *Color) SetPaddingBottomColor(color string) *Color {
+	c.paddingBottomColor = parseColor(color, true)
+
+	return c
+}
+
+func (c *Color) PrintPaddingTop(top bool) *Color {
+	c.paddingTop = top
+
+	return c
+}
+
+func (c *Color) PrintPaddingBottom(bottom bool) *Color {
+	c.paddingBottom = bottom
+
+	return c
+}
+
+func (c *Color) PrintNewLine(newLine bool) *Color {
+	c.newLine = newLine
+
+	return c
 }
 
 func (c *Color) Apply(text string) string {
@@ -50,16 +92,30 @@ func (c *Color) Apply(text string) string {
 func (c *Color) set() string {
 	var codes []string
 
-	if c.foreground != "" {
-		codes = append(codes, c.foreground)
+	if c.createColorMode == fillColorBody {
+		if c.foreground != "" {
+			codes = append(codes, c.foreground)
+		}
+
+		if c.background != "" {
+			codes = append(codes, c.background)
+		}
+
+		for _, val := range c.options {
+			codes = append(codes, fmt.Sprintf("%d", val["set"]))
+		}
 	}
 
-	if c.background != "" {
-		codes = append(codes, c.background)
+	if c.createColorMode == fillColorPaddingTop {
+		if c.paddingTopColor != "" {
+			codes = append(codes, c.paddingTopColor)
+		}
 	}
 
-	for _, val := range c.options {
-		codes = append(codes, fmt.Sprintf("%d", val["set"]))
+	if c.createColorMode == fillColorPaddingBottom {
+		if c.paddingBottomColor != "" {
+			codes = append(codes, c.paddingBottomColor)
+		}
 	}
 
 	if len(codes) == 0 {
@@ -72,16 +128,30 @@ func (c *Color) set() string {
 func (c *Color) unset() string {
 	var codes []string
 
-	if c.foreground != "" {
-		codes = append(codes, "39")
+	if c.createColorMode == fillColorBody {
+		if c.foreground != "" {
+			codes = append(codes, "39")
+		}
+
+		if c.background != "" {
+			codes = append(codes, "49")
+		}
+
+		for _, val := range c.options {
+			codes = append(codes, fmt.Sprintf("%d", val["unset"]))
+		}
 	}
 
-	if c.background != "" {
-		codes = append(codes, "49")
+	if c.createColorMode == fillColorPaddingTop {
+		if c.paddingTopColor != "" {
+			codes = append(codes, "49")
+		}
 	}
 
-	for _, val := range c.options {
-		codes = append(codes, fmt.Sprintf("%d", val["unset"]))
+	if c.createColorMode == fillColorPaddingBottom {
+		if c.paddingBottomColor != "" {
+			codes = append(codes, "49")
+		}
 	}
 
 	if len(codes) == 0 {
@@ -93,8 +163,11 @@ func (c *Color) unset() string {
 
 func CreateColor(foreground string, background string, options []string) (*Color, error) {
 	color := Color{
-		foreground: parseColor(foreground, false),
-		background: parseColor(background, true),
+		foreground:    parseColor(foreground, false),
+		background:    parseColor(background, true),
+		paddingTop:    true,
+		paddingBottom: true,
+		newLine:       true,
 	}
 	color.options = make(map[string]map[string]int)
 
